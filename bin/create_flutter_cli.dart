@@ -1,6 +1,5 @@
+import 'package:create_flutter_cli/src/generator.dart';
 import 'package:interact/interact.dart';
-
-import '../lib/src/generator.dart';
 
 void main(List<String> arguments) {
   final state = Select(
