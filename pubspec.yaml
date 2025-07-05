@@ -1,5 +1,5 @@
 name: create_flutter_cli
-description: A sample command-line application.
+description: A CLI tool to scaffold Flutter app structure, state management, themes, and APIs
 version: 1.0.0
 repository: https://github.com/tfkcodes/create_flutter_cli.git
 
