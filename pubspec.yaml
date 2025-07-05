@@ -1,7 +1,7 @@
 name: create_flutter_cli
 description: A sample command-line application.
 version: 1.0.0
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/tfkcodes/create_flutter_cli.git
 
 executables: 
   create_flutter_cli: create_flutter_cli
