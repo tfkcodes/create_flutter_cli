@@ -1,4 +1,3 @@
-import 'package:create_flutter_cli/create_flutter_cli.dart';
 import 'package:test/test.dart';
 
 void main() {
