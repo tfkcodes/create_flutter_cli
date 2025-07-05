@@ -2,6 +2,8 @@ import 'package:create_flutter_cli/src/generator.dart';
 import 'package:interact/interact.dart';
 
 void main(List<String> arguments) {
+  final projectName = Input(prompt: 'Enter your project name').interact();
+
   final state = Select(
     prompt: 'Select state management',
     options: ['none', 'provider', 'bloc', 'getx', 'riverpod'],
@@ -47,5 +49,5 @@ void main(List<String> arguments) {
     apis: apis,
   );
 
-  Generator(config).generate();
+  Generator(projectName, config).generate();
 }

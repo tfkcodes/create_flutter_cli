@@ -1,6 +1,6 @@
 name: create_flutter_cli
 description: A CLI tool to scaffold Flutter app structure, state management, themes, and APIs
-version: 1.0.0
+version: 1.0.1
 repository: https://github.com/tfkcodes/create_flutter_cli.git
 
 executables: 

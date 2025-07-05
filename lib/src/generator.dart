@@ -31,12 +31,15 @@ class GeneratorConfig {
 /// based on the provided [GeneratorConfig].
 class Generator {
   final GeneratorConfig config;
+  final String projectName;
 
-  Generator(this.config);
+  Generator(this.projectName, this.config);
 
   /// Entry point for generating project structure, state management,
   /// themes, network layer, and routing based on the config.
   void generate() {
+    Directory(projectName).createSync(recursive: true);
+    print('Created :$projectName');
     if (config.structure) _generateStructure();
     if (config.state != null) _generateStateManagement(config.state!);
     if (config.theme) _generateTheme();
@@ -54,25 +57,27 @@ class Generator {
       'lib/config',
     ];
     for (var dir in dirs) {
-      Directory(dir).createSync(recursive: true);
+      Directory('$projectName/$dir').createSync(recursive: true);
       print('Created :$dir');
     }
   }
 
   /// Creates setup files for the selected state management approach.
   void _generateStateManagement(String type) {
+    final basePath = '$projectName/lib/core/state';
+    Directory(basePath).createSync(recursive: true);
     switch (type.toLowerCase()) {
       case 'provider':
-        _write('lib/core/state/provider.dart', '// Provider setup');
+        _write('$basePath/provider.dart', '// Provider setup');
         break;
       case 'bloc':
-        _write('lib/core/state/bloc.dart', '// BLoC setup');
+        _write('$basePath/bloc.dart', '// BLoC setup');
         break;
       case 'getx':
-        _write('lib/core/state/getx.dart', '// GetX setup');
+        _write('$basePath/getx.dart', '// GetX setup');
         break;
       case 'riverpod':
-        _write('lib/core/state/riverpod.dart', '// Riverpod setup');
+        _write('$basePath/riverpod.dart', '// Riverpod setup');
         break;
       default:
         print('Unsupported state management: $type');
@@ -81,22 +86,26 @@ class Generator {
 
   /// Generates files for light and dark theme support.
   void _generateTheme() {
-    _write('lib/config/themes/light_theme.dart', '// Light theme');
-    _write('lib/config/themes/dark_theme.dart', '// Dark theme');
-    _write('lib/config/themes/theme_provider.dart', '// Theme provider');
+    final themePath = '$projectName/lib/config/themes';
+    Directory(themePath).createSync(recursive: true);
+    _write('$themePath/light_theme.dart', '// Light theme');
+    _write('$themePath/dark_theme.dart', '// Dark theme');
+    _write('$themePath/theme_provider.dart', '// Theme provider');
   }
 
   /// Generates network layer files depending on whether REST or GraphQL is selected.
   void _generateNetworking(String type) {
+    final networkPath = '$projectName/lib/core/network';
+    Directory(networkPath).createSync(recursive: true);
     switch (type.toLowerCase()) {
       case 'rest':
-        _write('lib/core/network/api_client.dart', '// REST client');
+        _write('$networkPath/api_client.dart', '// REST client');
         _write(
-          'lib/core/network/response_handler.dart',
+          '$networkPath/response_handler.dart',
           _responseHandlerStub(),
         );
         _write(
-          'lib/core/network/error_mapper.dart',
+          '$networkPath/error_mapper.dart',
           _errorMapperStub(),
         );
 
@@ -109,7 +118,7 @@ class Generator {
         break;
 
       case 'graphql':
-        _write('lib/core/network/graphql_client.dart', '// GraphQL client');
+        _write('$networkPath/graphql_client.dart', '// GraphQL client');
         // You can extend this section to generate queries/mutations later
         break;
 
@@ -120,11 +129,15 @@ class Generator {
 
   /// Generates basic app router file.
   void _generateRouting() {
-    _write('lib/config/routes/app_router.dart', '// App routing setup');
+    final routePath = '$projectName/lib/config/routes';
+    Directory(routePath).createSync(recursive: true);
+    _write('$routePath/app_router.dart', '// App routing setup');
   }
 
   /// Generates a Dart class with API endpoint constants.
   void _generateEndpoints(List<String> endpoints) {
+    final networkPath = '$projectName/lib/core/network';
+    Directory(networkPath).createSync(recursive: true);
     final buffer = StringBuffer()
       ..writeln("class Endpoints {")
       ..writeln(
@@ -136,12 +149,14 @@ class Generator {
 
     buffer.writeln("}");
 
-    _write("lib/core/network/endpoints.dart", buffer.toString());
+    _write("$networkPath/endpoints.dart", buffer.toString());
   }
 
   /// Generates request and response model classes for the given endpoint.
   void _generateRequestAndResponse(String endpoint) {
     final className = _capitalize(endpoint);
+    final networkPath = '$projectName/lib/core/network';
+    Directory(networkPath).createSync(recursive: true);
 
     final request = '''
 class ${className}Request {
@@ -165,8 +180,8 @@ class ${className}Response {
 }
 ''';
 
-    _write('lib/core/network/requests/${endpoint}_request.dart', request);
-    _write('lib/core/network/responses/${endpoint}_response.dart', response);
+    _write('$networkPath/requests/${endpoint}_request.dart', request);
+    _write('$networkPath/responses/${endpoint}_response.dart', response);
   }
 
   /// Returns a stub for error mapping logic.
