@@ -9,15 +9,30 @@ import 'package:create_flutter_cli/templates/provider/main_provider.dart';
 import 'package:create_flutter_cli/templates/provider/provider.dart';
 import 'package:create_flutter_cli/templates/repository/repository.dart';
 
-/// Configuration object for the Flutter CLI generator.
+/// Configuration object used to control the CLI generator behavior.
 class GeneratorConfig {
+  /// State management type: 'provider', 'bloc', 'getx', 'riverpod', or null.
   final String? state;
+
+  /// Whether to generate light/dark theme setup.
   final bool theme;
+
+  /// Networking type: 'rest', 'graphql', or null.
   final String? network;
+
+  /// Whether to include a routing configuration.
   final bool routing;
+
+  /// Whether to scaffold a default folder structure.
   final bool structure;
+
+  /// REST API endpoint paths to scaffold in endpoints.dart.
   final List<String> apis;
+
+  /// Language codes for localization (e.g. ['en', 'sw']).
   final List<String> languages;
+
+  /// Default locale code for `MaterialApp.locale` (e.g. 'en').
   String? defaultLanguage;
 
   GeneratorConfig({
@@ -32,27 +47,28 @@ class GeneratorConfig {
   });
 }
 
-/// Main generator class that produces files and folders
-/// based on the provided [GeneratorConfig].
+/// Main project generator class that scaffolds a Flutter app
+/// based on the provided configuration options.
 class Generator {
   final GeneratorConfig config;
   final String projectName;
 
   Generator(this.projectName, this.config);
 
-  /// Entry point for generating project structure
+  /// Top-level entry point that sequentially builds all configured
+  /// project components (project, structure, state, theme, etc).
   Future<void> generate() async {
     await _createFlutterProject();
     await generateMainFile(config, projectName, config.state!);
     if (config.structure) _generateStructure();
-    if (config.state != null) _generateStateManagement(config.state!);
-    if (config.theme) _generateTheme();
+    // if (config.state != null) _generateStateManagement(config.state!);
     if (config.network != null) _generateNetworking(config.network!);
     if (config.routing) _generateRouting();
+    if (config.theme) _generateTheme();
     if (config.languages.isNotEmpty) _generateLocalization(config.languages);
   }
 
-  /// Runs `flutter create` to scaffold a base Flutter project.
+  /// Runs `flutter create` command to generate a blank Flutter project.
   Future<void> _createFlutterProject() async {
     final result = await Process.run('flutter', ['create', projectName]);
 
@@ -64,7 +80,7 @@ class Generator {
     }
   }
 
-  /// Creates the standard folder structure under `lib/`.
+  /// Creates the recommended folder structure inside the `lib/` directory.
   void _generateStructure() {
     final dirs = [
       'lib/core',
@@ -79,29 +95,30 @@ class Generator {
     }
   }
 
-  /// Creates setup files for the selected state management approach.
-  void _generateStateManagement(String type) {
-    final basePath = '$projectName/lib/core/state';
-    Directory(basePath).createSync(recursive: true);
-    switch (type.toLowerCase()) {
-      case 'provider':
-        _write('$basePath/provider.dart', '// Provider setup');
-        break;
-      case 'bloc':
-        _write('$basePath/bloc.dart', '// BLoC setup');
-        break;
-      case 'getx':
-        _write('$basePath/getx.dart', '// GetX setup');
-        break;
-      case 'riverpod':
-        _write('$basePath/riverpod.dart', '// Riverpod setup');
-        break;
-      default:
-        print('Unsupported state management: $type');
-    }
-  }
+  // /// Generates the boilerplate setup file for the selected state management strategy.
+  // /// Only supports 'provider', 'bloc', 'getx', 'riverpod'.
+  // void _generateStateManagement(String type) {
+  //   final basePath = '$projectName/lib/core/state';
+  //   Directory(basePath).createSync(recursive: true);
+  //   switch (type.toLowerCase()) {
+  //     case 'provider':
+  //       _write('$basePath/provider.dart', '// Provider setup');
+  //       break;
+  //     case 'bloc':
+  //       _write('$basePath/bloc.dart', '// BLoC setup');
+  //       break;
+  //     case 'getx':
+  //       _write('$basePath/getx.dart', '// GetX setup');
+  //       break;
+  //     case 'riverpod':
+  //       _write('$basePath/riverpod.dart', '// Riverpod setup');
+  //       break;
+  //     default:
+  //       print('Unsupported state management: $type');
+  //   }
+  // }
 
-  /// Generates files for light and dark theme support.
+  /// Generates theme files (light & dark) along with a theme provider.
   void _generateTheme() {
     final themePath = '$projectName/lib/config/themes';
     Directory(themePath).createSync(recursive: true);
@@ -110,10 +127,12 @@ class Generator {
     _write('$themePath/theme_provider.dart', '// Theme provider');
   }
 
-  /// Generates network layer files depending on whether REST or GraphQL is selected.
+  /// Generates networking structure and files.
+  /// If REST is chosen, scaffolds client, handler, mapper, provider, repository, and endpoints.
   void _generateNetworking(String type) {
     final networkPath = '$projectName/lib/core/network';
     Directory(networkPath).createSync(recursive: true);
+
     switch (type.toLowerCase()) {
       case 'rest':
         _write('$networkPath/api_client.dart', requestProvider(projectName));
@@ -126,9 +145,6 @@ class Generator {
 
         if (config.apis.isNotEmpty) {
           _generateEndpoints(config.apis);
-          // for (var api in config.apis) {
-          //   _generateRequestAndResponse(api);
-          // }
         }
         break;
 
@@ -141,17 +157,19 @@ class Generator {
     }
   }
 
-  /// Generates basic app router file.
+  /// Creates a basic route setup file at `config/routes/app_router.dart`.
   void _generateRouting() {
     final routePath = '$projectName/lib/config/routes';
     Directory(routePath).createSync(recursive: true);
     _write('$routePath/app_router.dart', '// App routing setup');
   }
 
-  /// Generates a Dart class with API endpoint constants.
+  /// Generates `endpoints.dart` with constants for each endpoint,
+  /// including the baseUrl resolved from AppConfig.
   void _generateEndpoints(List<String> endpoints) {
     final networkPath = '$projectName/lib/core/network';
     Directory(networkPath).createSync(recursive: true);
+
     final buffer = StringBuffer()
       ..writeln("import 'package:$projectName/config/environment.dart';\n")
       ..writeln("class Endpoints {")
@@ -167,7 +185,8 @@ class Generator {
     _write("lib/config/environment.dart", environmentConfiguration());
   }
 
-  /// Writes content to the specified [path] and prevents duplication.
+  /// Writes the [content] to the specified [path].
+  /// Prevents overwriting files where the same class or full content already exists.
   void _write(String path, String content, {bool append = false}) {
     final file = File(path);
     final className = _extractClassName(content);
@@ -200,17 +219,22 @@ class Generator {
     }
   }
 
-  /// Extracts class name from class content string.
+  /// Extracts the first Dart class name found in a content string.
+  /// Useful for detecting duplication before writing.
   String? _extractClassName(String content) {
     final regex = RegExp(r'class\s+(\w+)\s*[{|<]');
     final match = regex.firstMatch(content);
     return match?.group(1);
   }
 
-  /// Capitalizes the first letter of a string.
+  /// Capitalizes the first letter of the provided string.
   String _capitalize(String input) =>
       input.isEmpty ? '' : input[0].toUpperCase() + input.substring(1);
 
+  /// Generates localization boilerplate:
+  /// - `app_localizations.dart`
+  /// - Empty `.json` files for each language
+  /// - Asset registration in pubspec.yaml
   void _generateLocalization(List<String> languages) {
     final localizationPath = '$projectName/lib/core/localization';
     Directory(localizationPath).createSync(recursive: true);
@@ -218,7 +242,7 @@ class Generator {
     final localizationContent = appLocalization(languages);
     _write('$localizationPath/app_localizations.dart', localizationContent);
 
-    // Add empty JSON files
+    // Create assets/lang/<code>.json
     final assetPath = '$projectName/assets/lang';
     Directory(assetPath).createSync(recursive: true);
 
@@ -230,7 +254,7 @@ class Generator {
       }
     }
 
-    // Optionally add pubspec asset reference
+    // Register asset path in pubspec.yaml
     final pubspecFile = File('$projectName/pubspec.yaml');
     if (pubspecFile.existsSync()) {
       final content = pubspecFile.readAsStringSync();

@@ -1,43 +1,46 @@
+import 'dart:io';
 import 'package:create_flutter_cli/src/generator.dart';
 import 'package:interact/interact.dart';
-import 'dart:io';
 
-/// Entry point for the Flutter project CLI generator.
+/// CLI entry point for generating a Flutter project scaffold.
+/// Asks the user questions, builds a config, and triggers the generation pipeline.
 Future<void> main(List<String> arguments) async {
-  // Ask for project name
-  final projectName = Input(prompt: 'Enter your project name').interact();
+  // Prompt for project name
+  final projectName = Input(
+    prompt: 'Enter your project name',
+  ).interact();
 
-  // Confirm if standard folder structure should be generated
+  // Ask whether to include a default folder structure
   final structure = Confirm(
     prompt: 'Generate folder structure?',
     defaultValue: true,
   ).interact();
 
-  // Choose between REST or GraphQL networking
+  // Ask user to select networking type
   final networkIndex = Select(
     prompt: 'Select networking type',
     options: ['none', 'rest', 'graphql'],
   ).interact();
 
-  // Choose state management approach
+  // Ask user to select state management type
   final stateIndex = Select(
     prompt: 'Select state management',
-    options: ['none', 'provider', 'bloc', 'getx', 'riverpod'],
+    options: ['none', 'provider'],
   ).interact();
 
-  // Map user selections to actual values
-  final state = stateIndex == 0
-      ? null
-      : ['provider', 'bloc', 'getx', 'riverpod'][stateIndex - 1];
+  // Convert indices to nullable strings
+  final state = stateIndex == 0 ? null : ['provider'][stateIndex - 1];
+
   final network =
       networkIndex == 0 ? null : ['rest', 'graphql'][networkIndex - 1];
 
-  // Collect REST API endpoints (only if REST is selected)
+  // Collect REST API endpoints if user selected REST
   List<String> apis = [];
   if (networkIndex == 1) {
     final endpointStr = Input(
       prompt: 'Enter comma-separated REST endpoints (e.g. login,register)',
     ).interact();
+
     apis = endpointStr
         .split(',')
         .map((e) => e.trim())
@@ -45,24 +48,24 @@ Future<void> main(List<String> arguments) async {
         .toList();
   }
 
-  // Confirm if routing setup should be added
+  // Ask whether to include routing configuration
   final routing = Confirm(
     prompt: 'Add routing support?',
     defaultValue: true,
   ).interact();
 
-  List<String> languages = [];
-// Collect supported languages
+  // Ask for supported language codes for localization
   final languageInput = Input(
     prompt: 'Enter comma-separated language codes (e.g. en,sw,fr)',
   ).interact();
 
-  languages = languageInput
+  List<String> languages = languageInput
       .split(',')
       .map((e) => e.trim())
       .where((e) => e.isNotEmpty)
       .toList();
 
+  // Ask user to select default language if localization is enabled
   String? defaultLanguage;
   if (languages.isNotEmpty) {
     final defaultLangIndex = Select(
@@ -72,24 +75,26 @@ Future<void> main(List<String> arguments) async {
 
     defaultLanguage = languages[defaultLangIndex];
   }
-  // Confirm if themes should be included
+
+  // Ask whether to include light/dark theme support
   final theme = Confirm(
     prompt: 'Add light/dark theme support?',
     defaultValue: true,
   ).interact();
 
-  // Create config object
+  // Create configuration model from the user's selections
   final config = GeneratorConfig(
-      state: state,
-      theme: theme,
-      network: network,
-      routing: routing,
-      structure: structure,
-      apis: apis,
-      languages: languages,
-      defaultLanguage: defaultLanguage);
+    state: state,
+    theme: theme,
+    network: network,
+    routing: routing,
+    structure: structure,
+    apis: apis,
+    languages: languages,
+    defaultLanguage: defaultLanguage,
+  );
 
-  // Spinner for project creation
+  // Show spinner while generating the project
   final spinner = Spinner(
     icon: '⏳',
     rightPrompt: (done) => done
@@ -97,34 +102,40 @@ Future<void> main(List<String> arguments) async {
         : 'Creating $projectName ...',
   ).interact();
 
+  // Run the generator with the user's config
   final generator = Generator(projectName, config);
   await generator.generate();
 
   spinner.done();
 
-  // Pub add packages based on selections
-  final projectDir = Directory(projectName);
-  if (!projectDir.existsSync()) {
-    print('Project folder not found!');
-    exit(1);
-  }
-
+  // Define required dependencies based on the config
   final dependencies = <String>{
     if (state == 'provider') ...[
       'provider',
       'http',
       'file_picker',
       'equatable',
-      'either'
+      'either',
     ],
     if (state == 'bloc') 'flutter_bloc',
     if (state == 'getx') 'get',
     if (state == 'riverpod') 'flutter_riverpod',
     if (network == 'rest') 'http',
     if (network == 'graphql') 'graphql_flutter',
-    if (languages.isNotEmpty) ...['flutter_localizations', 'intl'],
+    if (languages.isNotEmpty) ...[
+      'flutter_localizations',
+      'intl',
+    ],
   };
 
+  // Validate that project folder exists
+  final projectDir = Directory(projectName);
+  if (!projectDir.existsSync()) {
+    print('❌ Project folder not found!');
+    exit(1);
+  }
+
+  // Install dependencies via `flutter pub add`
   if (dependencies.isNotEmpty) {
     print('\n📦 Adding required packages...');
     for (final pkg in dependencies) {
@@ -133,8 +144,10 @@ Future<void> main(List<String> arguments) async {
         ['pub', 'add', pkg],
         workingDirectory: projectName,
       );
+
       if (result.exitCode == 0) {
         print('✅ Added: $pkg');
+
         if (languages.isNotEmpty) {
           print(
               '\n🗣 Localization setup complete for: ${languages.join(', ')}');
@@ -147,6 +160,7 @@ Future<void> main(List<String> arguments) async {
     }
   }
 
+  // Final success message
   print('\n✨ Done! Your Flutter project is ready in "$projectName".');
   print('🙏 Thanks for using the Flutter CLI Generator!');
 }
