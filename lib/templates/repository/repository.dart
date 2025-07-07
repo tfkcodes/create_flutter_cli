@@ -7,12 +7,13 @@
  * 
  */
 
-String exampleRepository() => '''
+String exampleRepository(String name) => '''
 
 import 'package:either_dart/either.dart';
-import 'package:create_flutter_cli/src/api/error_map.dart';
-import 'package:create_flutter_cli/src/templates/models/example_model.dart';
-import 'package:create_flutter_cli/src/api/request.dart';
+import 'package:\$name/core/network/error_map.dart';
+import 'package:\$name/data/models/example_model.dart';
+import 'package:\$name/core/network/request.dart';
+import 'package:\$name/core/network/endpoints.dart';
 
 
 class ExampleRepository{
@@ -21,8 +22,8 @@ Future<Either<ExampleModel, ErrorMap>> exampleRequest(
       token = "",
       String id = ""}) async {
     return await ApplicationBaseRequest.get(
-      AppAssets.baseUrl,
-      AppAssets.getExampleEndpoint,
+      Endpoints.baseUrl,
+      Endpoints.getExampleEndpoint,
       token: token,
     ).request().then((response) {
       if (response.status ~/ 100 == 2) {

@@ -1,11 +1,11 @@
-String requestProvider() => '''
+String requestProvider(String name) => '''
 
 import 'dart:io';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:create_flutter_cli/config/network/response.dart';
+import 'package:\$name/config/network/response.dart';
 
 class ApplicationBaseRequest {
   String baseUrl;

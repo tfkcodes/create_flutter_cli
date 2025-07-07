@@ -7,9 +7,9 @@
  * 
  */
 
-String exampleProvider() => '''
+String exampleProvider(String name) => '''
 
-import 'package:create_flutter_cli/src/templates/models/example_model.dart';
+import 'package:name/data/models/example_model.dart';
 class ExampleProvider extends ChangeNotifier {
 
 bool _exampleLoading = false;

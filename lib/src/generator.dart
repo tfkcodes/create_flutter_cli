@@ -1,8 +1,11 @@
 import 'dart:io';
 
 import 'package:create_flutter_cli/templates/api/api_client.dart';
+import 'package:create_flutter_cli/templates/api/environment_configuration.dart';
 import 'package:create_flutter_cli/templates/api/error_map.dart';
 import 'package:create_flutter_cli/templates/api/response_handler.dart';
+import 'package:create_flutter_cli/templates/localizations/app_localization.dart';
+import 'package:create_flutter_cli/templates/provider/main_provider.dart';
 import 'package:create_flutter_cli/templates/provider/provider.dart';
 import 'package:create_flutter_cli/templates/repository/repository.dart';
 
@@ -14,6 +17,8 @@ class GeneratorConfig {
   final bool routing;
   final bool structure;
   final List<String> apis;
+  final List<String> languages;
+  String? defaultLanguage;
 
   GeneratorConfig({
     this.state,
@@ -22,6 +27,8 @@ class GeneratorConfig {
     required this.routing,
     required this.structure,
     this.apis = const [],
+    this.languages = const [],
+    this.defaultLanguage,
   });
 }
 
@@ -36,11 +43,13 @@ class Generator {
   /// Entry point for generating project structure
   Future<void> generate() async {
     await _createFlutterProject();
+    await generateMainFile(config, projectName, config.state!);
     if (config.structure) _generateStructure();
     if (config.state != null) _generateStateManagement(config.state!);
     if (config.theme) _generateTheme();
     if (config.network != null) _generateNetworking(config.network!);
     if (config.routing) _generateRouting();
+    if (config.languages.isNotEmpty) _generateLocalization(config.languages);
   }
 
   /// Runs `flutter create` to scaffold a base Flutter project.
@@ -107,19 +116,19 @@ class Generator {
     Directory(networkPath).createSync(recursive: true);
     switch (type.toLowerCase()) {
       case 'rest':
-        _write('$networkPath/api_client.dart', requestProvider());
+        _write('$networkPath/api_client.dart', requestProvider(projectName));
         _write('$networkPath/response_handler.dart', responseHandlerStub());
         _write('$networkPath/error_mapper.dart', errorMapperStub());
-        _write(
-            '$networkPath/provider/example_provider.dart', exampleProvider());
-        _write('$networkPath/repositor/example_repository.dart',
-            exampleRepository());
+        _write('$networkPath/provider/example_provider.dart',
+            exampleProvider(projectName));
+        _write('$projectName/data/repositories/example_repository.dart',
+            exampleRepository(projectName));
 
         if (config.apis.isNotEmpty) {
           _generateEndpoints(config.apis);
-          for (var api in config.apis) {
-            _generateRequestAndResponse(api);
-          }
+          // for (var api in config.apis) {
+          //   _generateRequestAndResponse(api);
+          // }
         }
         break;
 
@@ -144,9 +153,9 @@ class Generator {
     final networkPath = '$projectName/lib/core/network';
     Directory(networkPath).createSync(recursive: true);
     final buffer = StringBuffer()
+      ..writeln("import 'package:$projectName/config/environment.dart';\n")
       ..writeln("class Endpoints {")
-      ..writeln(
-          '  static const String baseUrl = "https://api.tfkcodes.dev";\n');
+      ..writeln('  static const String baseUrl = AppConfig().baseUrl;\n');
 
     for (var e in endpoints) {
       buffer.writeln('  static const String ${e.trim()} = "/${e.trim()}";');
@@ -155,42 +164,7 @@ class Generator {
     buffer.writeln("}");
 
     _write("$networkPath/endpoints.dart", buffer.toString());
-  }
-
-  /// Generates request and response model classes for the given endpoint.
-  void _generateRequestAndResponse(String endpoint) {
-    final className = _capitalize(endpoint);
-    final basePath = '$projectName/lib/core/network';
-    final requestPath = '$basePath/requests/${endpoint}_request.dart';
-    final responsePath = '$basePath/responses/${endpoint}_response.dart';
-
-    Directory('$basePath/requests').createSync(recursive: true);
-    Directory('$basePath/responses').createSync(recursive: true);
-
-    final request = '''
-class ${className}Request {
-  final Map<String, dynamic> data;
-
-  ${className}Request({required this.data});
-
-  Map<String, dynamic> toJson() => data;
-}
-''';
-
-    final response = '''
-class ${className}Response {
-  final dynamic data;
-
-  ${className}Response(this.data);
-
-  factory ${className}Response.fromJson(Map<String, dynamic> json) {
-    return ${className}Response(json['data']);
-  }
-}
-''';
-
-    _write(requestPath, request);
-    _write(responsePath, response);
+    _write("lib/config/environment.dart", environmentConfiguration());
   }
 
   /// Writes content to the specified [path] and prevents duplication.
@@ -236,4 +210,38 @@ class ${className}Response {
   /// Capitalizes the first letter of a string.
   String _capitalize(String input) =>
       input.isEmpty ? '' : input[0].toUpperCase() + input.substring(1);
+
+  void _generateLocalization(List<String> languages) {
+    final localizationPath = '$projectName/lib/core/localization';
+    Directory(localizationPath).createSync(recursive: true);
+
+    final localizationContent = appLocalization(languages);
+    _write('$localizationPath/app_localizations.dart', localizationContent);
+
+    // Add empty JSON files
+    final assetPath = '$projectName/assets/lang';
+    Directory(assetPath).createSync(recursive: true);
+
+    for (final lang in languages) {
+      final file = File('$assetPath/$lang.json');
+      if (!file.existsSync()) {
+        file.writeAsStringSync('{}');
+        print('Created :assets/lang/$lang.json');
+      }
+    }
+
+    // Optionally add pubspec asset reference
+    final pubspecFile = File('$projectName/pubspec.yaml');
+    if (pubspecFile.existsSync()) {
+      final content = pubspecFile.readAsStringSync();
+      if (!content.contains('assets/lang/')) {
+        final updated = content.replaceFirst(
+          RegExp(r'(flutter:\s*\n\s*assets:\s*\n)?'),
+          'flutter:\n  assets:\n    - assets/lang/\n',
+        );
+        pubspecFile.writeAsStringSync(updated);
+        print('Updated :pubspec.yaml with asset localization path');
+      }
+    }
+  }
 }
