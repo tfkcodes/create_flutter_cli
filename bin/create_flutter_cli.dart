@@ -115,7 +115,8 @@ Future<void> main(List<String> arguments) async {
       'http',
       'file_picker',
       'equatable',
-      'either',
+      'either_dart',
+      'flutter_localization'
     ],
     if (state == 'bloc') 'flutter_bloc',
     if (state == 'getx') 'get',
@@ -123,7 +124,6 @@ Future<void> main(List<String> arguments) async {
     if (network == 'rest') 'http',
     if (network == 'graphql') 'graphql_flutter',
     if (languages.isNotEmpty) ...[
-      'flutter_localizations',
       'intl',
     ],
   };
@@ -138,25 +138,30 @@ Future<void> main(List<String> arguments) async {
   // Install dependencies via `flutter pub add`
   if (dependencies.isNotEmpty) {
     print('\n📦 Adding required packages...');
-    for (final pkg in dependencies) {
-      final result = await Process.run(
+    final pkgsList = dependencies.join(' ');
+    final result = await Process.run(
+      'flutter',
+      ['pub', 'add', ...dependencies],
+      workingDirectory: projectName,
+    );
+
+    if (result.exitCode == 0) {
+      print('✅ Added packages: $pkgsList');
+
+      // Run flutter pub get to ensure everything is fetched
+      final pubGetResult = await Process.run(
         'flutter',
-        ['pub', 'add', pkg],
+        ['pub', 'get'],
         workingDirectory: projectName,
       );
 
-      if (result.exitCode == 0) {
-        print('✅ Added: $pkg');
-
-        if (languages.isNotEmpty) {
-          print(
-              '\n🗣 Localization setup complete for: ${languages.join(', ')}');
-          print(
-              '➡ Don\'t forget to update your MaterialApp with supportedLocales and localizationsDelegates.');
-        }
+      if (pubGetResult.exitCode == 0) {
+        print('🚀 flutter pub get completed successfully.');
       } else {
-        print('❌ Failed to add $pkg:\n${result.stderr}');
+        print('❌ Failed to run flutter pub get:\n${pubGetResult.stderr}');
       }
+    } else {
+      print('❌ Failed to add packages:\n${result.stderr}');
     }
   }
 

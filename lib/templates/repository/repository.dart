@@ -9,9 +9,9 @@
 String exampleRepository(String name) => '''
 
 import 'package:either_dart/either.dart';
-import 'package:$name/core/network/error_map.dart';
+import 'package:$name/core/network/error_mapper.dart';
 import 'package:$name/data/models/example_model.dart';
-import 'package:$name/core/network/request.dart';
+import 'package:$name/core/network/api_client.dart';
 import 'package:$name/core/network/endpoints.dart';
 
 /// A repository responsible for handling ExampleModel-related API calls.

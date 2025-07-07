@@ -69,7 +69,7 @@ class _AppLocalizationsDelegate
   /// Determines whether the app supports the given [locale].
   @override
   bool isSupported(Locale locale) {
-    return [\${lang.map((e) => "'\$e'").join(', ')}].contains(locale.languageCode);
+    return [${lang.map((e) => "'$e'").join(', ')}].contains(locale.languageCode);
   }
 
   /// Loads the appropriate [AppLocalizations] instance for the given [locale].

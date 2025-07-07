@@ -28,9 +28,12 @@ generateMainFile(GeneratorConfig config, String projectName, String state) {
 String _basicProviderMainFile(String projectName) => '''
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:$projectName/lib/core/network/example_provider.dart';
+import 'package:$projectName/core/network/provider/example_provider.dart';
+import 'package:$projectName/config/environment.dart';
 
 void main() {
+ WidgetsFlutterBinding.ensureInitialized();
+  AppConfig();
   runApp(MyApp());
 }
 
@@ -62,68 +65,40 @@ class MyApp extends StatelessWidget {
 String _localizedMainFile(
     String projectName, String defaultLang, List<String> languages) {
   final supportedLocales =
-      languages.map((e) => "Locale('$e', '')").join(',\n              ');
+      languages.map((e) => "Locale('$e')").join(',\n          ');
 
   return '''
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:$projectName/core/localization/app_localizations.dart';
+import 'package:$projectName/core/network/provider/example_provider.dart';
+import 'package:$projectName/config/environment.dart';
 
-void main() {
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+    AppConfig();
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => MyAppState();
-}
-
-class MyAppState extends State<MyApp> {
-  Locale _locale = const Locale("$defaultLang");
-
-  /// Call this method to change the app language at runtime.
-  void changeLanguage(String langCode) {
-    setState(() {
-      _locale = Locale(langCode);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => ExampleProvider()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: '$projectName',
         theme: ThemeData.light(),
         darkTheme: ThemeData.dark(),
-        locale: _locale,
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-          AppLocalizations.delegate,
-        ],
-        supportedLocales: const [
-              $supportedLocales
-        ],
-        localeResolutionCallback: (locale, supportedLocales) {
-          for (var supportedLocale in supportedLocales) {
-            if (supportedLocale.languageCode == locale?.languageCode) {
-              return supportedLocale;
-            }
-          }
-          return supportedLocales.first;
-        },
         home: Scaffold(
-          appBar: AppBar(title: Text('Localization Example')),
-          body: Center(child: Text('Wrap the text with (translate(context, "text_key"))')),
+          appBar: AppBar(title: Text("Provider with Language")),
+          body: Center(
+            child: Text("Provider with Language"),
+          ),
         ),
       ),
     );

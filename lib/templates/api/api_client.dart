@@ -19,7 +19,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:$name/config/network/response.dart';
+import 'package:$name/core/network/response_handler.dart';
 
 class ApplicationBaseRequest {
   final String baseUrl;
@@ -269,7 +269,8 @@ class ApplicationBaseRequest {
       }
     } catch (e) {
       // If any error occurs, return a 404 response with unknown error message.
-      response = http.Response("{\"message\":\"Unknown Error\"}", 404);
+      response = http.Response("{\\\"message\\\":\\\"Unknown Error\\\"}", 404);
+
     }
 
     Map<String, dynamic> apiResponse = {};
@@ -281,7 +282,8 @@ class ApplicationBaseRequest {
       } else if (response.statusCode == 404) {
         apiResponse = jsonDecode(response.body);
       } else if (response.statusCode == 502) {
-        apiResponse = jsonDecode("{\"message\":\"Process Failed\"}");
+        apiResponse =jsonDecode("{\\\"message\\\":\\\"Process Failed\\\"}");
+;
       } else {
         // For other status codes, return a Response with raw data.
         return Response(

@@ -5,9 +5,11 @@ import 'package:create_flutter_cli/templates/api/environment_configuration.dart'
 import 'package:create_flutter_cli/templates/api/error_map.dart';
 import 'package:create_flutter_cli/templates/api/response_handler.dart';
 import 'package:create_flutter_cli/templates/localizations/app_localization.dart';
+import 'package:create_flutter_cli/templates/models/example_model.dart';
 import 'package:create_flutter_cli/templates/provider/main_provider.dart';
 import 'package:create_flutter_cli/templates/provider/provider.dart';
 import 'package:create_flutter_cli/templates/repository/repository.dart';
+import 'package:create_flutter_cli/templates/yaml/yaml_template.dart';
 
 /// Configuration object used to control the CLI generator behavior.
 class GeneratorConfig {
@@ -59,6 +61,12 @@ class Generator {
   /// project components (project, structure, state, theme, etc).
   Future<void> generate() async {
     await _createFlutterProject();
+    await updatePubspecYaml(
+      projectName,
+      useProvider: config.state == 'provider',
+      useHttp: config.network == 'rest',
+      useIntl: config.languages.isNotEmpty,
+    );
     await generateMainFile(config, projectName, config.state!);
     if (config.structure) _generateStructure();
     // if (config.state != null) _generateStateManagement(config.state!);
@@ -85,6 +93,8 @@ class Generator {
     final dirs = [
       'lib/core',
       'lib/features',
+      'lib/features/widgets',
+      'lib/features/pages',
       'lib/data/models',
       'lib/data/repositories',
       'lib/config',
@@ -137,14 +147,21 @@ class Generator {
       case 'rest':
         _write('$networkPath/api_client.dart', requestProvider(projectName));
         _write('$networkPath/response_handler.dart', responseHandlerStub());
+        _write(
+            '$projectName/lib/data/models/example_model.dart', exampleModel());
+        _write('$projectName/lib/data/repositories/example_repository.dart',
+            exampleRepository(projectName));
+        _write('$networkPath/response_handler.dart', responseHandlerStub());
         _write('$networkPath/error_mapper.dart', errorMapperStub());
         _write('$networkPath/provider/example_provider.dart',
             exampleProvider(projectName));
-        _write('$projectName/data/repositories/example_repository.dart',
+        _write('$projectName/lib/data/repositories/example_repository.dart',
             exampleRepository(projectName));
 
         if (config.apis.isNotEmpty) {
           _generateEndpoints(config.apis);
+        } else {
+          _generateEndpoints([]);
         }
         break;
 
@@ -173,7 +190,9 @@ class Generator {
     final buffer = StringBuffer()
       ..writeln("import 'package:$projectName/config/environment.dart';\n")
       ..writeln("class Endpoints {")
-      ..writeln('  static const String baseUrl = AppConfig().baseUrl;\n');
+      ..writeln('  static String baseUrl = AppConfig().baseUrl;\n')
+      ..writeln(
+          '  static const String getExampleEndpoint = "/getExampleData";\n');
 
     for (var e in endpoints) {
       buffer.writeln('  static const String ${e.trim()} = "/${e.trim()}";');
@@ -182,7 +201,8 @@ class Generator {
     buffer.writeln("}");
 
     _write("$networkPath/endpoints.dart", buffer.toString());
-    _write("lib/config/environment.dart", environmentConfiguration());
+    _write(
+        "$projectName/lib/config/environment.dart", environmentConfiguration());
   }
 
   /// Writes the [content] to the specified [path].
@@ -226,10 +246,6 @@ class Generator {
     final match = regex.firstMatch(content);
     return match?.group(1);
   }
-
-  /// Capitalizes the first letter of the provided string.
-  String _capitalize(String input) =>
-      input.isEmpty ? '' : input[0].toUpperCase() + input.substring(1);
 
   /// Generates localization boilerplate:
   /// - `app_localizations.dart`
