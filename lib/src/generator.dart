@@ -3,12 +3,16 @@ import 'dart:io';
 import 'package:create_flutter_cli/templates/api/api_client.dart';
 import 'package:create_flutter_cli/templates/api/environment_configuration.dart';
 import 'package:create_flutter_cli/templates/api/error_map.dart';
+import 'package:create_flutter_cli/templates/api/graphql_client.dart';
 import 'package:create_flutter_cli/templates/api/response_handler.dart';
 import 'package:create_flutter_cli/templates/localizations/app_localization.dart';
 import 'package:create_flutter_cli/templates/models/example_model.dart';
 import 'package:create_flutter_cli/templates/provider/main_provider.dart';
 import 'package:create_flutter_cli/templates/provider/provider.dart';
 import 'package:create_flutter_cli/templates/repository/repository.dart';
+import 'package:create_flutter_cli/templates/theme/app_colors.dart';
+import 'package:create_flutter_cli/templates/theme/theme.dart';
+import 'package:create_flutter_cli/templates/widgets/app_buttons.dart';
 import 'package:create_flutter_cli/templates/yaml/yaml_template.dart';
 
 /// Configuration object used to control the CLI generator behavior.
@@ -67,13 +71,14 @@ class Generator {
       useHttp: config.network == 'rest',
       useIntl: config.languages.isNotEmpty,
     );
-    await generateMainFile(config, projectName, config.state!);
     if (config.structure) _generateStructure();
-    // if (config.state != null) _generateStateManagement(config.state!);
     if (config.network != null) _generateNetworking(config.network!);
-    if (config.routing) _generateRouting();
-    if (config.theme) _generateTheme();
     if (config.languages.isNotEmpty) _generateLocalization(config.languages);
+    if (config.theme) _generateTheme();
+    if (config.routing) _generateRouting();
+
+    await generateMainFile(config, projectName, config.state!);
+    // if (config.state != null) _generateStateManagement(config.state!);
   }
 
   /// Runs `flutter create` command to generate a blank Flutter project.
@@ -99,6 +104,9 @@ class Generator {
       'lib/data/repositories',
       'lib/config',
     ];
+
+    _write('$projectName/lib/features/widgets/app_button.dart',
+        appButtons(projectName));
     for (var dir in dirs) {
       Directory('$projectName/$dir').createSync(recursive: true);
       print('Created :$dir');
@@ -132,8 +140,8 @@ class Generator {
   void _generateTheme() {
     final themePath = '$projectName/lib/config/themes';
     Directory(themePath).createSync(recursive: true);
-    _write('$themePath/light_theme.dart', '// Light theme');
-    _write('$themePath/dark_theme.dart', '// Dark theme');
+    _write('$themePath/theme.dart', themeConfig(projectName));
+    _write('$themePath/app_colors.dart', appColors());
     _write('$themePath/theme_provider.dart', '// Theme provider');
   }
 
@@ -166,7 +174,10 @@ class Generator {
         break;
 
       case 'graphql':
-        _write('$networkPath/graphql_client.dart', '// GraphQL client');
+        _write('$networkPath/graphql_client.dart',
+            graphqlClientRequest(projectName));
+        _write(
+            '$projectName/lib/data/models/example_model.dart', exampleModel());
         break;
 
       default:
